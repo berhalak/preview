@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    #reload-toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4caf50;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10000;
+      pointer-events: none;
+    }
+    #reload-toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="reload-toast">Reloaded ✨</div>
+  <div id="app"></div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const path = require('path');
+    const fs = require('fs');
+
+    // Show reload toast on window reload
+    let isFirstLoad = true;
+    window.addEventListener('load', () => {
+      if (!isFirstLoad) {
+        const toast = document.getElementById('reload-toast');
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 2000);
+      }
+      isFirstLoad = false;
+    });
+
+    // Get file info from main process
+    ipcRenderer.invoke('get-file-info').then(({ filePath, fileName, fileExt, cwd }) => {
+      console.log('Loading file:', fileName);
+      
+      let scriptPath = filePath;
+
+      // If TypeScript, load the compiled version
+      if (fileExt === '.ts') {
+        const baseName = path.basename(filePath, '.ts');
+        scriptPath = path.join(cwd, '.preview-temp', `${baseName}.js`);
+        
+        // Wait for the file to be compiled if it doesn't exist yet
+        const checkAndLoad = () => {
+          if (fs.existsSync(scriptPath)) {
+            loadScript(scriptPath);
+          } else {
+            console.log('Waiting for transpilation...');
+            setTimeout(checkAndLoad, 100);
+          }
+        };
+        checkAndLoad();
+      } else {
+        // For .js files, load directly
+        loadScript(scriptPath);
+      }
+    });
+
+    function loadScript(scriptPath) {
+      const script = document.createElement('script');
+      script.src = scriptPath;
+      script.onerror = (e) => {
+        console.error('Failed to load script:', e);
+        document.body.innerHTML = `
+          <div style="padding: 20px; color: #f44336;">
+            <h2>Error loading script</h2>
+            <p>Failed to load: ${scriptPath}</p>
+          </div>
+        `;
+      };
+      document.body.appendChild(script);
+    }
+  </script>
+</body>
+</html>

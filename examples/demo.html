@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview Demo</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      max-width: 600px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      font-size: 48px;
+      margin: 0 0 20px 0;
+      animation: fadeIn 1s ease-in;
+    }
+    
+    p {
+      font-size: 20px;
+      margin: 10px 0;
+      opacity: 0.9;
+    }
+    
+    .feature {
+      display: inline-block;
+      margin: 10px;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    #clock {
+      font-size: 32px;
+      font-weight: bold;
+      margin-top: 30px;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Hello from HTML! 🌟</h1>
+    <p>Edit and save to see changes instantly.</p>
+    <div style="margin: 30px 0;">
+      <span class="feature">✨ Auto-reload</span>
+      <span class="feature">🚀 Fast preview</span>
+      <span class="feature">🎨 Beautiful UI</span>
+    </div>
+    <div id="clock"></div>
+  </div>
+
+  <script>
+    function updateClock() {
+      const now = new Date();
+      const clock = document.getElementById('clock');
+      clock.textContent = now.toLocaleTimeString();
+    }
+    
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>
