@@ -1,6 +1,5 @@
 # Development files
 node_modules/
-.preview-temp/
 examples/
 .git/
 .gitignore

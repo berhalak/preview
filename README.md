@@ -7,10 +7,10 @@ A powerful CLI tool that instantly opens and previews `.html`, `.js`, and `.ts` 
 - 🚀 **Instant Preview** - Open any HTML, JavaScript, or TypeScript file in seconds
 - 🔄 **Auto-Reload** - Automatically reloads when files change
 - 📦 **TypeScript Support** - Automatic transpilation using esbuild
-- 🎨 **DevTools Included** - Chrome DevTools open by default
 - 🔥 **Hot Module Reloading** - Fast feedback loop for rapid development
 - 🎯 **Simple CLI** - Just one command to preview any file
 - ✨ **Reload Toast** - Visual feedback when files reload
+- 🎛️ **Menu API** - Customize application menus from your scripts
 
 ## 📦 Installation
 
@@ -58,7 +58,7 @@ preview demo.ts
 
 ### TypeScript Files
 - Transpiles to JavaScript using **esbuild**
-- Outputs to `.preview-temp/` directory
+- Outputs to system temp directory (`os.tmpdir()/preview-electron/`)
 - Watches source files and rebuilds on changes
 - Auto-reloads after successful transpilation
 
@@ -98,7 +98,8 @@ The tool watches for changes in:
 - Related TypeScript/JavaScript files
 
 ### Temporary Files
-- Compiled TypeScript outputs are saved to `.preview-temp/`
+- Compiled TypeScript outputs are saved to system temp directory
+- Location: `os.tmpdir()/preview-electron/<filename>/`
 - Automatically cleaned up when the app closes
 
 ## 🎨 Example Files
@@ -146,6 +147,66 @@ document.body.innerHTML = `
   <p>Edit and save to see changes instantly.</p>
 </body>
 </html>
+```
+
+## 🎛️ Preview API
+
+When running JavaScript or TypeScript files, a global `PreviewAPI` object is available to interact with the preview window.
+
+### Menu Customization
+
+```typescript
+// Set a complete custom menu
+PreviewAPI.setMenu([
+  {
+    label: 'File',
+    submenu: [
+      { label: 'Action 1', id: 'action1', accelerator: 'CmdOrCtrl+1' },
+      { label: 'Action 2', id: 'action2', accelerator: 'CmdOrCtrl+2' },
+      { type: 'separator' },
+      { label: 'Quit', role: 'quit' }
+    ]
+  },
+  {
+    label: 'View',
+    submenu: [
+      { label: 'Reload', role: 'reload' },
+      { label: 'Toggle DevTools', role: 'toggleDevTools' }
+    ]
+  }
+]);
+
+// Add a single menu item
+PreviewAPI.addMenuItem('Custom', [
+  { label: 'Say Hello', id: 'hello', accelerator: 'CmdOrCtrl+H' },
+  { label: 'Open DevTools', role: 'toggleDevTools' }
+]);
+
+// Handle menu actions
+PreviewAPI.onMenuAction('action1', () => {
+  console.log('Action 1 triggered!');
+  alert('You clicked Action 1');
+});
+
+PreviewAPI.onMenuAction('hello', () => {
+  console.log('Hello from menu!');
+});
+```
+
+### Available Roles
+
+Electron provides built-in menu roles:
+- `quit` - Quit the application
+- `reload` - Reload the window
+- `toggleDevTools` - Toggle developer tools
+- `resetZoom`, `zoomIn`, `zoomOut` - Zoom controls
+- And many more (see Electron documentation)
+
+### Try it!
+
+Run the menu demo to see it in action:
+```bash
+preview examples/menu-demo.ts
 ```
 
 ## 🧪 Testing

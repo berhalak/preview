@@ -7,10 +7,7 @@
   <style>
     body {
       margin: 0;
-      padding: 20px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: #1e1e1e;
-      color: #d4d4d4;
     }
     #reload-toast {
       position: fixed;
@@ -36,64 +33,114 @@
   <div id="app"></div>
 
   <script>
-    const { ipcRenderer } = require('electron');
-    const path = require('path');
-    const fs = require('fs');
+    (() => {
+      const { ipcRenderer } = require('electron');
+      const path = require('path');
+      const fs = require('fs');
+      const os = require('os');
 
-    // Show reload toast on window reload
-    let isFirstLoad = true;
-    window.addEventListener('load', () => {
-      if (!isFirstLoad) {
-        const toast = document.getElementById('reload-toast');
-        toast.classList.add('show');
-        setTimeout(() => {
-          toast.classList.remove('show');
-        }, 2000);
-      }
-      isFirstLoad = false;
-    });
+      // Show reload toast on window reload
+      let isFirstLoad = true;
+      window.addEventListener('load', () => {
+        if (!isFirstLoad) {
+          const toast = document.getElementById('reload-toast');
+          toast.classList.add('show');
+          setTimeout(() => {
+            toast.classList.remove('show');
+          }, 2000);
+        }
+        isFirstLoad = false;
+      });
 
-    // Get file info from main process
-    ipcRenderer.invoke('get-file-info').then(({ filePath, fileName, fileExt, cwd }) => {
-      console.log('Loading file:', fileName);
-      
-      let scriptPath = filePath;
-
-      // If TypeScript, load the compiled version
-      if (fileExt === '.ts') {
-        const baseName = path.basename(filePath, '.ts');
-        scriptPath = path.join(cwd, '.preview-temp', `${baseName}.js`);
+      // Get file info from main process
+      ipcRenderer.invoke('get-file-info').then(({ filePath, fileName, fileExt, cwd, tempDir }) => {
+        console.log('Loading file:', fileName);
         
-        // Wait for the file to be compiled if it doesn't exist yet
-        const checkAndLoad = () => {
-          if (fs.existsSync(scriptPath)) {
-            loadScript(scriptPath);
-          } else {
-            console.log('Waiting for transpilation...');
-            setTimeout(checkAndLoad, 100);
+        // Set the document title to the filename without extension
+        const fileNameWithoutExt = path.basename(filePath, fileExt);
+        document.title = `${fileNameWithoutExt}`;
+        
+        // Expose Preview API globally before loading the script
+        window.PreviewAPI = {
+          /**
+           * Set a custom menu for the window
+           * @param {Array} menuTemplate - Electron menu template
+           * @example
+           * PreviewAPI.setMenu([
+           *   {
+           *     label: 'File',
+           *     submenu: [
+           *       { label: 'New', click: () => console.log('New') },
+           *       { label: 'Open', click: () => console.log('Open') }
+           *     ]
+           *   }
+           * ]);
+           */
+          setMenu: async (menuTemplate) => {
+            return await ipcRenderer.invoke('set-menu', menuTemplate);
+          },
+
+          /**
+           * Add a menu item to the window
+           * @param {string} label - Menu label
+           * @param {Array} submenu - Array of submenu items
+           * @example
+           * PreviewAPI.addMenuItem('Custom', [
+           *   { label: 'Action 1', accelerator: 'CmdOrCtrl+1' },
+           *   { label: 'Action 2', accelerator: 'CmdOrCtrl+2' }
+           * ]);
+           */
+          addMenuItem: async (label, submenu) => {
+            return await ipcRenderer.invoke('add-menu-item', { label, submenu });
+          },
+
+          /**
+           * Register a menu action handler
+           * @param {string} id - Unique action ID
+           * @param {Function} handler - Function to call when action is triggered
+           */
+          onMenuAction: (id, handler) => {
+            ipcRenderer.on(`menu-action-${id}`, handler);
           }
         };
-        checkAndLoad();
-      } else {
-        // For .js files, load directly
-        loadScript(scriptPath);
-      }
-    });
+        
+        // Function to load the user's script
+        const loadScript = (scriptPath) => {
+          const script = document.createElement('script');
+          script.src = scriptPath;
+          script.onerror = (e) => {
+            console.error('Failed to load script:', e);
+            document.body.innerHTML = `
+              <div style="padding: 20px; color: #f44336;">
+                <h2>Error loading script</h2>
+                <p>Failed to load: ${scriptPath}</p>
+              </div>
+            `;
+          };
+          document.body.appendChild(script);
+        };
+        
+      let scriptPath = filePath;
 
-    function loadScript(scriptPath) {
-      const script = document.createElement('script');
-      script.src = scriptPath;
-      script.onerror = (e) => {
-        console.error('Failed to load script:', e);
-        document.body.innerHTML = `
-          <div style="padding: 20px; color: #f44336;">
-            <h2>Error loading script</h2>
-            <p>Failed to load: ${scriptPath}</p>
-          </div>
-        `;
-      };
-      document.body.appendChild(script);
-    }
+      // If TypeScript or JSX, load the compiled version
+      if (fileExt === '.ts' || fileExt === '.tsx' || fileExt === '.jsx') {
+        const baseName = path.basename(filePath, fileExt);
+        scriptPath = path.join(tempDir, `${baseName}.js`);          // Wait for the file to be compiled if it doesn't exist yet
+          const checkAndLoad = () => {
+            if (fs.existsSync(scriptPath)) {
+              loadScript(scriptPath);
+            } else {
+              console.log('Waiting for transpilation...');
+              setTimeout(checkAndLoad, 100);
+            }
+          };
+          checkAndLoad();
+        } else {
+          // For .js files, load directly
+          loadScript(scriptPath);
+        }
+      });
+    })();
   </script>
 </body>
 </html>

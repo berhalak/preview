@@ -2,12 +2,13 @@ const chokidar = require('chokidar');
 const esbuild = require('esbuild');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 let buildContext = null;
 
-async function transpileTypeScript(filePath, cwd) {
-  const tempDir = path.join(cwd, '.preview-temp');
-  const fileName = path.basename(filePath, '.ts');
+async function transpileTypeScript(filePath, tempDir) {
+  const ext = path.extname(filePath);
+  const fileName = path.basename(filePath, ext);
   const outFile = path.join(tempDir, `${fileName}.js`);
 
   // Create temp directory if it doesn't exist
@@ -16,7 +17,7 @@ async function transpileTypeScript(filePath, cwd) {
   }
 
   try {
-    await esbuild.build({
+    const buildOptions = {
       entryPoints: [filePath],
       bundle: true,
       outfile: outFile,
@@ -24,9 +25,18 @@ async function transpileTypeScript(filePath, cwd) {
       platform: 'browser',
       target: 'es2020',
       sourcemap: 'inline',
-    });
+    };
 
-    console.log(`✓ Transpiled: ${path.basename(filePath)} → ${path.relative(cwd, outFile)}`);
+    // Add JSX configuration for .jsx and .tsx files
+    if (ext === '.jsx' || ext === '.tsx') {
+      buildOptions.jsx = 'transform';
+      buildOptions.jsxFactory = 'React.createElement';
+      buildOptions.jsxFragment = 'React.Fragment';
+    }
+
+    await esbuild.build(buildOptions);
+
+    console.log(`✓ Transpiled: ${path.basename(filePath)} → ${outFile}`);
     return outFile;
   } catch (error) {
     console.error('Transpilation error:', error);
@@ -34,7 +44,7 @@ async function transpileTypeScript(filePath, cwd) {
   }
 }
 
-function startWatcher(filePath, cwd, onReload) {
+function startWatcher(filePath, cwd, tempDir, onReload) {
   const fileDir = path.dirname(filePath);
   const fileExt = path.extname(filePath).toLowerCase();
 
@@ -45,11 +55,13 @@ function startWatcher(filePath, cwd, onReload) {
     path.join(fileDir, '*.html'), // HTML files
   ];
 
-  // If it's a TypeScript file, also watch imported files
-  if (fileExt === '.ts') {
+  // Watch related files based on extension
+  if (fileExt === '.ts' || fileExt === '.tsx') {
     watchPatterns.push(path.join(fileDir, '*.ts'));
-  } else if (fileExt === '.js') {
+    watchPatterns.push(path.join(fileDir, '*.tsx'));
+  } else if (fileExt === '.js' || fileExt === '.jsx') {
     watchPatterns.push(path.join(fileDir, '*.js'));
+    watchPatterns.push(path.join(fileDir, '*.jsx'));
   }
 
   console.log(`👀 Watching for changes...`);
@@ -66,10 +78,10 @@ function startWatcher(filePath, cwd, onReload) {
 
     const ext = path.extname(changedPath).toLowerCase();
 
-    // If TypeScript file changed, rebuild it
-    if (ext === '.ts') {
+    // If TypeScript/JSX file changed, rebuild it
+    if (ext === '.ts' || ext === '.tsx' || ext === '.jsx') {
       try {
-        await transpileTypeScript(filePath, cwd);
+        await transpileTypeScript(filePath, tempDir);
         console.log('🔄 Reloading...');
         onReload();
       } catch (error) {
@@ -86,9 +98,9 @@ function startWatcher(filePath, cwd, onReload) {
     console.error('Watcher error:', error);
   });
 
-  // Initial build for TypeScript files
-  if (fileExt === '.ts') {
-    transpileTypeScript(filePath, cwd).catch(console.error);
+  // Initial build for TypeScript/JSX files
+  if (fileExt === '.ts' || fileExt === '.tsx' || fileExt === '.jsx') {
+    transpileTypeScript(filePath, tempDir).catch(console.error);
   }
 
   return watcher;
