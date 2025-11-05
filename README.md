@@ -1,4 +1,4 @@
-# 🔍 Preview CLI
+# 🔍 Preview CLI (coded mostly by AI)
 
 A powerful CLI tool that instantly opens and previews `.html`, `.js`, and `.ts` files in an Electron window with automatic hot-reloading.
 
