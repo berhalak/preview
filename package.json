@@ -1,6 +1,6 @@
 {
   "name": "@berhalak/preview",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A CLI tool to preview HTML, JS, and TS files in an Electron window with auto-reload",
   "main": "src/main.js",
   "bin": {
@@ -9,6 +9,8 @@
   "scripts": {
     "test": "node bin/preview.js examples/demo.html",
     "test:ts": "node bin/preview.js examples/demo.ts",
+    "test:node": "node bin/preview.js examples/node.js",
+    "test:node:ts": "node bin/preview.js examples/node.ts",
     "test:menu": "node bin/preview.js examples/menu-demo.js",
     "prepublishOnly": "echo 'Ready to publish!'"
   },

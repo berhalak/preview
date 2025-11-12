@@ -21,9 +21,8 @@ async function transpileTypeScript(filePath, tempDir) {
       entryPoints: [filePath],
       bundle: true,
       outfile: outFile,
-      format: 'iife',
-      platform: 'browser',
-      target: 'es2020',
+      platform: 'node',
+      target: 'es2022',
       sourcemap: 'inline',
     };
 
